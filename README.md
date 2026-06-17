@@ -1,9 +1,35 @@
 # service-ontology-lite
 
-A lightweight service ontology and audit MCP for vibe-coded web apps.
+**AI agents should not edit a web app before they know its routes, auth boundaries, data entities, external services, cron jobs, and blast radius.**
 
-`service-ontology-lite` turns a small web app into a machine-readable service map before an AI agent edits it.
-It records routes, auth boundaries, data entities, external dependencies, cron jobs, and risk findings.
+`service-ontology-lite` turns a small Next.js-style web app into a machine-readable service map, then exposes that map through a CLI and MCP server.
+
+[![CI](https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org)
+[![MCP stdio](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io)
+
+> Current status: private staging repo. The package is being hardened for a later public release. Public-safe core code lives here; project-specific scoring, production schema, tokens, and incident runbooks stay outside the package.
+
+---
+
+## One-line result
+
+```text
+service-ontology-lite = service map + release audit + edit-risk guardrail for AI-coded web apps
+```
+
+## Why this exists
+
+AI coding agents can change files quickly, but they often start without a service-level map.
+
+This repo gives the agent a small, structured answer before it edits:
+
+```text
+What routes exist?
+Which ones are public, authenticated, admin, or cron?
+Which data entities and external services are nearby?
+If this file changes, what is the blast radius?
+```
 
 ## Positioning
 
@@ -33,6 +59,16 @@ What is the blast radius of this edit?        LOW/MEDIUM/HIGH risk with impacted
 This is useful when a project was built quickly, has scattered Next.js routes, and needs a machine-readable service map before another AI agent changes auth, API, cron, database, or integration code.
 
 ## What you can do with it
+
+### 0. Run the agent preflight
+
+```bash
+service-ontology validate ./your-nextjs-app
+service-ontology audit ./your-nextjs-app --json
+service-ontology risk ./your-nextjs-app --changed app/api/admin/route.ts --json
+```
+
+Use this before handing a task to an AI coding agent. The result tells the agent whether the change is touching public routes, authenticated routes, admin routes, cron handlers, data entities, or external integrations.
 
 ### 1. Generate a service graph
 
@@ -140,6 +176,49 @@ manifest_valid          true
 MCP tools exposed       6
 ```
 
+## Practical scenarios
+
+### Scenario 1 — before an AI agent edits an admin route
+
+```bash
+service-ontology risk . --changed app/api/admin/route.ts --json
+```
+
+Expected signal:
+
+```text
+severity: HIGH
+reason: admin_or_cron_route_changed
+next step: require route-level tests and human review before merge
+```
+
+### Scenario 2 — before changing an integration file
+
+```bash
+service-ontology risk . --changed app/lib/supabase.ts --json
+```
+
+Expected signal:
+
+```text
+severity: HIGH when the file is linked to an external dependency
+next step: check env names, failure mode, retry behavior, and release rollback path
+```
+
+### Scenario 3 — before public release
+
+```bash
+service-ontology validate .
+service-ontology audit . --json
+```
+
+Expected signal:
+
+```text
+manifest_valid: true
+finding_count: 0 or reviewed findings with explicit fixes
+```
+
 ## Good use cases
 
 ```text
@@ -166,10 +245,24 @@ MCP experiment                                 Serve service graph over stdio wi
 
 The package is a static inspection layer. It does not execute the target app, open network connections, read `.env` values, or verify production authorization behavior.
 
-## Install locally
+## Install
+
+Current private staging install:
+
+```bash
+python3 -m pip install "git+https://github.com/verisworks-ai/service-ontology-lite.git"
+```
+
+Local development install:
 
 ```bash
 python3 -m pip install -e .
+```
+
+Planned public release install after hardening:
+
+```bash
+python3 -m pip install service-ontology-lite
 ```
 
 No runtime dependency is required for the MVP.
@@ -285,6 +378,22 @@ The tool is designed to flag risky edit boundaries before an AI coding agent cha
 - Manifest validation is intentionally lightweight and does not enforce every JSON Schema keyword at runtime.
 - Risk scoring is generic; project-specific compliance, billing, affiliate, or incident rules should live in private plugins outside this package.
 - The bundled sample app is a fixture for scanner and MCP verification, not a deployable production template.
+
+## Public release checklist
+
+This repo is private while the package is being prepared for public use.
+
+Before switching visibility to public:
+
+```text
+1. Keep project-specific rules outside this package
+2. Keep sample app synthetic, not copied from production
+3. Verify wheel/sdist contain schema and no local state
+4. Re-run compileall, pytest, ruff, build, and secret scan
+5. Decide package registry path: PyPI or GitHub-only release
+6. Normalize public-facing commit author if needed
+7. Add public examples that do not expose production routes or runbooks
+```
 
 ## Public/private boundary
 
