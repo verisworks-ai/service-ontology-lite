@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from service_ontology_lite.audit import audit_change_risk
 from service_ontology_lite.cli import main as cli_main
 from service_ontology_lite.mcp_server import handle_request
 from service_ontology_lite.scanner import scan_project
@@ -30,6 +31,84 @@ def test_nextjs_route_groups_dynamic_and_catch_all_segments(tmp_path: Path):
     assert "/blog/:slug" in paths
     assert "/docs/:parts*" in paths
     assert "/shop/:filters*" in paths
+
+
+def test_scan_ignores_dependency_and_build_artifact_dirs(tmp_path: Path):
+    (tmp_path / "node_modules" / "pkg" / "app" / "api" / "leak").mkdir(parents=True)
+    (tmp_path / "node_modules" / "pkg" / "app" / "api" / "leak" / "route.ts").write_text(
+        "export async function GET() { return Response.json({ DISCORD: true }) }",
+        encoding="utf-8",
+    )
+    (tmp_path / ".vercel" / "output" / "functions" / "api" / "shadow.func").mkdir(parents=True)
+    (tmp_path / ".vercel" / "output" / "functions" / "api" / "shadow.func" / "route.js").write_text(
+        "export async function GET() { return Response.json({ VERCEL: true }) }",
+        encoding="utf-8",
+    )
+    (tmp_path / "app" / "api" / "real").mkdir(parents=True)
+    (tmp_path / "app" / "api" / "real" / "route.ts").write_text(
+        "export async function GET() { return Response.json({ ok: true }) }",
+        encoding="utf-8",
+    )
+
+    graph = scan_project(tmp_path)
+
+    handlers = {route.handler for route in graph.routes}
+    assert handlers == {"app/api/real/route.ts"}
+    assert graph.external_services == []
+
+
+def test_scan_detects_vercel_api_mjs_routes(tmp_path: Path):
+    (tmp_path / "api" / "share").mkdir(parents=True)
+    (tmp_path / "api" / "events.mjs").write_text(
+        "export default function handler(req, res) { res.json({ ok: true }) }",
+        encoding="utf-8",
+    )
+    (tmp_path / "api" / "share" / "[slug].mjs").write_text(
+        "export default function handler(req, res) { res.json({ ok: true }) }",
+        encoding="utf-8",
+    )
+    (tmp_path / "api" / "_lib").mkdir(parents=True)
+    (tmp_path / "api" / "_lib" / "helper.mjs").write_text(
+        "export function helper() { return 'not-a-route' }",
+        encoding="utf-8",
+    )
+
+    graph = scan_project(tmp_path)
+    routes = {route.path: route for route in graph.routes}
+
+    assert routes["/api/events"].handler == "api/events.mjs"
+    assert routes["/api/events"].methods == ["GET", "POST", "OPTIONS"]
+    assert routes["/api/share/:slug"].handler == "api/share/[slug].mjs"
+    assert "/api/_lib/helper" not in routes
+
+
+def test_change_risk_service_role_external_dependency_is_high(tmp_path: Path):
+    (tmp_path / "service-ontology.json").write_text(
+        json.dumps(
+            {
+                "external_services": [
+                    {
+                        "name": "Supabase",
+                        "type": "database",
+                        "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+                        "used_by": ["api/_lib/second-salary-api.mjs"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "api" / "_lib").mkdir(parents=True)
+    (tmp_path / "api" / "_lib" / "second-salary-api.mjs").write_text(
+        "const key = process.env.SUPABASE_SERVICE_ROLE_KEY;",
+        encoding="utf-8",
+    )
+
+    graph = scan_project(tmp_path)
+    risk = audit_change_risk(graph, ["api/_lib/second-salary-api.mjs"])
+
+    assert risk["severity"] == "HIGH"
+    assert "sensitive_external_dependency_touched" in risk["reasons"]
 
 
 def test_validate_manifest_accepts_sample_manifest():

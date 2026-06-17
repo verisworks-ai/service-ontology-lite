@@ -40,8 +40,12 @@ def audit_change_risk(graph: ServiceGraph, changed_files: list[str]) -> dict:
         severity = "MEDIUM"
         reasons.append("authenticated_or_unknown_route_changed")
     if impacted_services:
-        severity = "HIGH" if severity == "MEDIUM" else severity
-        reasons.append("external_dependency_touched")
+        if any(_is_sensitive_external_service(service) for service in impacted_services):
+            severity = "HIGH"
+            reasons.append("sensitive_external_dependency_touched")
+        else:
+            severity = "HIGH" if severity == "MEDIUM" else severity
+            reasons.append("external_dependency_touched")
     if impacted_jobs:
         severity = "HIGH"
         reasons.append("scheduled_job_touched")
@@ -146,3 +150,17 @@ def _matches_file(handler: str, changed: str) -> bool:
     h = handler.replace("\\", "/").strip("/")
     c = str(Path(changed)).replace("\\", "/").strip("/")
     return h == c or h.endswith(c) or c.endswith(h)
+
+
+def _is_sensitive_external_service(service: dict) -> bool:
+    env_values = [str(env).upper() for env in service.get("env", [])]
+    service_name = str(service.get("name", "")).upper()
+    service_type = str(service.get("type", "")).upper()
+    sensitive_env = any(any(part.upper() in env for part in SENSITIVE_NAME_PARTS) for env in env_values)
+    privileged_env = any(
+        marker in env
+        for env in env_values
+        for marker in ("SERVICE_ROLE", "DATABASE_URL", "ADMIN", "PRIVATE")
+    )
+    sensitive_backend = service_name in {"SUPABASE", "DATABASE"} or service_type in {"DATABASE", "AUTH", "PAYMENTS"}
+    return privileged_env or (sensitive_backend and sensitive_env)

@@ -8,6 +8,27 @@ from .models import Entity, ExternalService, Job, Route, ServiceGraph
 from .schema import validate_manifest
 
 _ROUTE_FILE_NAMES = {"page.tsx", "page.ts", "page.jsx", "page.js", "route.ts", "route.js"}
+_VERCEL_API_SUFFIXES = {".js", ".mjs", ".ts"}
+_DEFAULT_IGNORE_DIRS = {
+    ".git",
+    ".hg",
+    ".svn",
+    ".next",
+    ".nuxt",
+    ".output",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".turbo",
+    ".venv",
+    ".vercel",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "node_modules",
+    "reports",
+    "venv",
+}
 _SECRET_HINTS = {
     "STRIPE": ("Stripe", "payments"),
     "SUPABASE": ("Supabase", "database"),
@@ -30,7 +51,11 @@ def scan_project(root: str | Path) -> ServiceGraph:
     if manifest:
         _apply_manifest(graph, manifest)
 
-    route_files = sorted(p for p in project_root.rglob("*") if p.is_file() and p.name in _ROUTE_FILE_NAMES)
+    route_files = sorted(
+        p
+        for p in _iter_project_files(project_root)
+        if p.name in _ROUTE_FILE_NAMES or _is_vercel_api_route(project_root, p)
+    )
     known_handlers = {r.handler for r in graph.routes if r.handler}
     for route_file in route_files:
         rel = route_file.relative_to(project_root).as_posix()
@@ -144,7 +169,7 @@ def _apply_manifest(graph: ServiceGraph, manifest: dict[str, Any]) -> None:
 
 def _route_from_file(root: Path, file: Path, content: str) -> Route:
     rel = file.relative_to(root).as_posix()
-    path = _path_from_app_file(rel)
+    path = _path_from_route_file(rel)
     auth = _auth_from_content(path, content)
     methods = [
         m
@@ -153,12 +178,20 @@ def _route_from_file(root: Path, file: Path, content: str) -> Route:
     ]
     if file.name.startswith("page") and not methods:
         methods = ["GET"]
+    if _is_vercel_api_rel(rel) and not methods:
+        methods = ["GET", "POST", "OPTIONS"]
     route = Route(path=path, auth=auth, handler=rel, methods=methods, source="static")
     lower = content.lower()
     for entity_hint in ["user", "profile", "session", "order", "post", "notice", "payment"]:
         if entity_hint in lower:
             route.entities.append(entity_hint.title())
     return route
+
+
+def _path_from_route_file(rel: str) -> str:
+    if _is_vercel_api_rel(rel):
+        return _path_from_vercel_api_file(rel)
+    return _path_from_app_file(rel)
 
 
 def _path_from_app_file(rel: str) -> str:
@@ -182,6 +215,23 @@ def _path_from_app_file(rel: str) -> str:
     return "/" + "/".join(segments) if segments else "/"
 
 
+def _path_from_vercel_api_file(rel: str) -> str:
+    path = Path(rel)
+    parts = ["api", *path.with_suffix("").parts[1:]]
+    segments = [_normalize_route_segment(part) for part in parts]
+    return "/" + "/".join(segment for segment in segments if segment)
+
+
+def _normalize_route_segment(part: str) -> str:
+    if part.startswith("[[...") and part.endswith("]]"):
+        return ":" + part[5:-2] + "*"
+    if part.startswith("[...") and part.endswith("]"):
+        return ":" + part[4:-1] + "*"
+    if part.startswith("[") and part.endswith("]"):
+        return ":" + part[1:-1]
+    return part
+
+
 def _auth_from_content(path: str, content: str):
     lower = content.lower()
     if "admin" in path or "admin" in lower:
@@ -197,7 +247,7 @@ def _auth_from_content(path: str, content: str):
 
 def _infer_external_services(graph: ServiceGraph, root: Path) -> None:
     services: dict[str, ExternalService] = {s.name: s for s in graph.external_services if s.name}
-    for file in root.rglob("*"):
+    for file in _iter_project_files(root):
         if not file.is_file() or file.suffix.lower() not in {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json"}:
             continue
         content = _safe_read(file)
@@ -210,6 +260,35 @@ def _infer_external_services(graph: ServiceGraph, root: Path) -> None:
                 if rel not in service.used_by:
                     service.used_by.append(rel)
     graph.external_services = sorted(services.values(), key=lambda s: s.name)
+
+
+def _iter_project_files(root: Path):
+    for path in root.rglob("*"):
+        if path.is_file() and not _is_ignored_path(root, path):
+            yield path
+
+
+def _is_ignored_path(root: Path, path: Path) -> bool:
+    try:
+        rel_parts = path.relative_to(root).parts
+    except ValueError:
+        return True
+    return any(part in _DEFAULT_IGNORE_DIRS for part in rel_parts)
+
+
+def _is_vercel_api_route(root: Path, path: Path) -> bool:
+    rel = path.relative_to(root).as_posix()
+    return _is_vercel_api_rel(rel)
+
+
+def _is_vercel_api_rel(rel: str) -> bool:
+    path = Path(rel)
+    return (
+        len(path.parts) >= 2
+        and path.parts[0] == "api"
+        and path.suffix in _VERCEL_API_SUFFIXES
+        and not any(part.startswith("_") for part in path.parts[1:])
+    )
 
 
 def _infer_entities(graph: ServiceGraph, root: Path) -> None:
