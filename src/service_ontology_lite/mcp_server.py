@@ -7,7 +7,8 @@ from typing import Any
 
 from .audit import audit_change_risk, audit_graph
 from .models import score_findings
-from .scanner import scan_project
+from .scanner import _load_manifest, scan_project
+from .schema import validate_manifest
 
 SERVER_INFO = {"name": "service-ontology-lite", "version": "0.1.0"}
 
@@ -45,7 +46,10 @@ def handle_request(request: dict[str, Any], root: Path) -> dict[str, Any]:
     if method == "tools/call":
         tool_name = params.get("name")
         arguments = params.get("arguments") or {}
-        payload = call_tool(tool_name, arguments, root)
+        try:
+            payload = call_tool(tool_name, arguments, root)
+        except ValueError as exc:
+            return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32602, "message": str(exc)}}
         return _result(request_id, {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, indent=2)}]})
     if method == "notifications/initialized":
         return _result(request_id, {})
@@ -53,6 +57,11 @@ def handle_request(request: dict[str, Any], root: Path) -> dict[str, Any]:
 
 
 def call_tool(name: str, arguments: dict[str, Any], root: Path) -> dict[str, Any]:
+    if name == "validate_manifest":
+        target = Path(arguments.get("root") or root)
+        manifest = _load_manifest(target, validate=False)
+        errors = validate_manifest(manifest) if manifest else ["service-ontology manifest not found"]
+        return {"manifest_valid": not errors, "errors": errors}
     graph = scan_project(arguments.get("root") or root)
     if name == "get_service_graph":
         return graph.as_dict()
@@ -75,6 +84,7 @@ def _tools() -> list[dict[str, Any]]:
         {"name": "list_external_dependencies", "description": "List detected external dependencies and env hints.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
         {"name": "audit_change_risk", "description": "Estimate blast radius for changed files.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}, "changed_files": {"type": "array", "items": {"type": "string"}}}}},
         {"name": "audit_service", "description": "Run generic service ontology audit rules.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
+        {"name": "validate_manifest", "description": "Validate service-ontology.json/yaml manifest structure before scan.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
     ]
 
 

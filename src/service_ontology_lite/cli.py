@@ -6,7 +6,8 @@ from pathlib import Path
 
 from .audit import audit_change_risk, audit_graph
 from .models import score_findings
-from .scanner import scan_project
+from .scanner import _load_manifest, scan_project
+from .schema import validate_manifest
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,7 +24,22 @@ def main(argv: list[str] | None = None) -> int:
     risk.add_argument("--changed", action="append", default=[])
     risk.add_argument("--json", action="store_true")
 
+    validate = sub.add_parser("validate")
+    validate.add_argument("root", nargs="?", default=".")
+    validate.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
+
+    if args.command == "validate":
+        manifest = _load_manifest(Path(args.root).resolve(), validate=False)
+        errors = validate_manifest(manifest) if manifest else ["service-ontology manifest not found"]
+        payload = {"manifest_valid": not errors, "errors": errors}
+        if getattr(args, "json", False):
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(_format_text(args.command, payload))
+        return 0 if not errors else 1
+
     graph = scan_project(Path(args.root))
 
     if args.command in {"scan", "graph"}:
@@ -61,6 +77,10 @@ def _format_text(command: str, payload: dict) -> str:
         lines = [f"score: {payload['score']}", f"findings: {payload['finding_count']}"]
         for item in payload["findings"]:
             lines.append(f"[{item['severity']}] {item['title']}")
+        return "\n".join(lines)
+    if command == "validate":
+        lines = [f"manifest_valid: {str(payload['manifest_valid']).lower()}"]
+        lines.extend(payload.get("errors", []))
         return "\n".join(lines)
     return json.dumps(payload, ensure_ascii=False, indent=2)
 

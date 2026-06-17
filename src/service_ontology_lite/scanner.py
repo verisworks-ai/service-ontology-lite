@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import Entity, ExternalService, Job, Route, ServiceGraph
+from .schema import validate_manifest
 
 _ROUTE_FILE_NAMES = {"page.tsx", "page.ts", "page.jsx", "page.js", "route.ts", "route.js"}
 _SECRET_HINTS = {
@@ -50,15 +51,21 @@ def scan_project(root: str | Path) -> ServiceGraph:
     return graph
 
 
-def _load_manifest(root: Path) -> dict[str, Any]:
+def _load_manifest(root: Path, *, validate: bool = True) -> dict[str, Any]:
     for name in ("service-ontology.json", "service-ontology.yaml", "service-ontology.yml"):
         path = root / name
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
         if path.suffix == ".json":
-            return json.loads(text)
-        return _parse_tiny_yaml(text)
+            manifest = json.loads(text)
+        else:
+            manifest = _parse_tiny_yaml(text)
+        if validate:
+            errors = validate_manifest(manifest)
+            if errors:
+                raise ValueError("Invalid service ontology manifest: " + "; ".join(errors))
+        return manifest
     return {}
 
 
@@ -160,7 +167,11 @@ def _path_from_app_file(rel: str) -> str:
     for part in parts:
         if part.startswith("(") and part.endswith(")"):
             continue
-        if part.startswith("[") and part.endswith("]"):
+        if part.startswith("[[...") and part.endswith("]]"):
+            segments.append(":" + part[5:-2] + "*")
+        elif part.startswith("[...") and part.endswith("]"):
+            segments.append(":" + part[4:-1] + "*")
+        elif part.startswith("[") and part.endswith("]"):
             segments.append(":" + part[1:-1])
         else:
             segments.append(part)

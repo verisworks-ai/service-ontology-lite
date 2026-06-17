@@ -30,6 +30,7 @@ service-ontology scan ./sample-app --json
 service-ontology audit ./sample-app --json
 service-ontology graph ./sample-app --json
 service-ontology risk ./sample-app --changed app/api/admin/route.ts --json
+service-ontology validate ./sample-app
 ```
 
 ## MCP server
@@ -45,6 +46,32 @@ get_service_graph
 list_routes
 list_external_dependencies
 audit_change_risk
+audit_service
+validate_manifest
+```
+
+Hermes Agent MCP config example:
+
+```yaml
+mcp_servers:
+  service_ontology:
+    command: "service-ontology-mcp"
+    args: ["/absolute/path/to/your-nextjs-app"]
+    timeout: 60
+    connect_timeout: 30
+```
+
+When registered, an AI agent can call `audit_change_risk` before editing a route and see whether the touched file crosses public, admin, cron, data, or external-service boundaries.
+
+## Next.js route support
+
+The scanner understands common App Router path conventions:
+
+```text
+app/(marketing)/blog/[slug]/page.tsx       → /blog/:slug
+app/docs/[...parts]/page.tsx               → /docs/:parts*
+app/shop/[[...filters]]/route.ts           → /shop/:filters*
+app/api/admin/route.ts                     → /api/admin
 ```
 
 ## Explicit manifest
@@ -71,6 +98,14 @@ jobs:
     schedule: "0 0 * * *"
     handler: app/api/cron/route.ts
 ```
+
+Validate a manifest before sharing it with agents:
+
+```bash
+service-ontology validate ./sample-app
+```
+
+The JSON Schema reference is in `docs/service-ontology.schema.json`.
 
 ## Public/private boundary
 
