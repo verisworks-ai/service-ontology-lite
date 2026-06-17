@@ -15,6 +15,157 @@ service-ontology-lite
 → developer-facing service structure audit + MCP guardrail for AI-coded web apps
 ```
 
+## What you get
+
+`service-ontology-lite` gives an AI coding agent a compact map of a web app before it edits code.
+
+It answers five practical questions:
+
+```text
+Question                                      Output
+Which routes exist?                           routes[] with path, handler, methods, auth
+Which routes are public/auth/admin/cron?      auth boundary labels
+Which data entities are touched?              entities[] and route-to-entity links
+Which external services are in play?          external_services[] with env-name hints and used_by files
+What is the blast radius of this edit?        LOW/MEDIUM/HIGH risk with impacted routes/services/jobs
+```
+
+This is useful when a project was built quickly, has scattered Next.js routes, and needs a machine-readable service map before another AI agent changes auth, API, cron, database, or integration code.
+
+## What you can do with it
+
+### 1. Generate a service graph
+
+```bash
+service-ontology scan ./your-nextjs-app --json
+```
+
+Produces JSON for:
+
+```text
+- routes
+- auth boundaries
+- data entities
+- external services
+- scheduled jobs
+- project metadata counts
+```
+
+### 2. Audit service structure before release
+
+```bash
+service-ontology audit ./your-nextjs-app --json
+```
+
+Flags generic issues such as:
+
+```text
+- route auth not declared
+- sensitive-looking public route
+- route references an undeclared entity
+- external service env documentation with no usage
+- scheduled job missing schedule metadata
+```
+
+### 3. Check edit risk before changing files
+
+```bash
+service-ontology risk ./your-nextjs-app --changed app/api/admin/route.ts --json
+```
+
+Example result class:
+
+```text
+severity: HIGH
+reasons:
+- admin_or_cron_route_changed
+- external_dependency_touched
+```
+
+Use this as a pre-edit guardrail: if the touched file crosses admin, cron, auth, data, or external-service boundaries, require stricter review/test steps.
+
+### 4. Add explicit project knowledge
+
+Create `service-ontology.json`, `service-ontology.yaml`, or `service-ontology.yml` in the target app.
+
+```json
+{
+  "routes": [
+    {
+      "path": "/dashboard",
+      "auth": "required",
+      "handler": "app/dashboard/page.tsx",
+      "entities": ["User"],
+      "external_services": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "storage": "database:users",
+      "fields": ["id", "email"],
+      "exposed_at": ["/dashboard"]
+    }
+  ],
+  "external_services": [],
+  "jobs": []
+}
+```
+
+Then validate it:
+
+```bash
+service-ontology validate ./your-nextjs-app
+```
+
+### 5. Expose the graph to AI agents through MCP
+
+```bash
+service-ontology-mcp ./your-nextjs-app
+```
+
+Agents can call MCP tools to inspect the app instead of guessing from filenames.
+
+## Example dry-run result
+
+Against the bundled sample app, the current release reports:
+
+```text
+scan route_count        5
+external_services       Discord, Supabase
+audit score             100
+audit findings          0
+risk admin route        HIGH
+manifest_valid          true
+MCP tools exposed       6
+```
+
+## Good use cases
+
+```text
+Use case                                      How this repo helps
+Pre-release check for a small Next.js app      Run validate + audit + risk before deploy
+AI coding guardrail                            Give agents a route/auth/service map first
+Private app documentation                      Keep service-ontology.json beside source
+Refactor planning                              See which routes/entities/services are touched
+Cron/API safety review                         Flag admin/cron/external-service edits as high risk
+MCP experiment                                 Serve service graph over stdio without app runtime dependencies
+```
+
+## Not a replacement for
+
+```text
+- authentication tests
+- dependency vulnerability scanning
+- SAST/DAST
+- production penetration tests
+- framework-specific type checking
+- real database schema introspection
+- runtime traffic analysis
+```
+
+The package is a static inspection layer. It does not execute the target app, open network connections, read `.env` values, or verify production authorization behavior.
+
 ## Install locally
 
 ```bash
