@@ -146,7 +146,11 @@ def _route_from_file(root: Path, file: Path, content: str) -> Route:
     rel = file.relative_to(root).as_posix()
     path = _path_from_app_file(rel)
     auth = _auth_from_content(path, content)
-    methods = [m for m in ["GET", "POST", "PUT", "PATCH", "DELETE"] if f"export async function {m}" in content or f"export function {m}" in content]
+    methods = [
+        m
+        for m in ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        if f"export async function {m}" in content or f"export function {m}" in content
+    ]
     if file.name.startswith("page") and not methods:
         methods = ["GET"]
     route = Route(path=path, auth=auth, handler=rel, methods=methods, source="static")

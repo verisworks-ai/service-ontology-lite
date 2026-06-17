@@ -4,7 +4,6 @@ from pathlib import Path
 
 from .models import Finding, ServiceGraph
 
-
 SENSITIVE_NAME_PARTS = ("secret", "token", "key", "password", "credential")
 
 
@@ -109,7 +108,9 @@ def _audit_entities(graph: ServiceGraph) -> list[Finding]:
 def _audit_external_services(graph: ServiceGraph) -> list[Finding]:
     findings: list[Finding] = []
     for service in graph.external_services:
-        sensitive_env = [env for env in service.env if any(part.upper() in env.upper() for part in SENSITIVE_NAME_PARTS)]
+        sensitive_env = [
+            env for env in service.env if any(part.upper() in env.upper() for part in SENSITIVE_NAME_PARTS)
+        ]
         if sensitive_env and not service.used_by:
             findings.append(Finding(
                 module="external_dependency",

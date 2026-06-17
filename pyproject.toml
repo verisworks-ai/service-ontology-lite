@@ -20,6 +20,16 @@ service-ontology-mcp = "service_ontology_lite.mcp_server:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/service_ontology_lite"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"docs/service-ontology.schema.json" = "service_ontology_lite/service-ontology.schema.json"
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

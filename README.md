@@ -23,6 +23,19 @@ python3 -m pip install -e .
 
 No runtime dependency is required for the MVP.
 
+## Release gate
+
+Before publishing or pushing a release branch, run:
+
+```bash
+python3 -m compileall -q src tests
+python3 -m pytest -q
+python3 -m ruff check .
+python3 -m build --sdist --wheel
+```
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs the same gate on Python 3.11.
+
 ## CLI
 
 ```bash
@@ -106,6 +119,21 @@ service-ontology validate ./sample-app
 ```
 
 The JSON Schema reference is in `docs/service-ontology.schema.json`.
+The same schema file is also included in the wheel as package data at
+`service_ontology_lite/service-ontology.schema.json` so installed tools can reference the released schema without cloning the repository.
+
+## Security model
+
+`service-ontology-lite` is a static inspection and guardrail tool. It does not execute application code, open network connections, read `.env` files, or collect secret values. The scanner reads project files from the target directory and emits structural metadata: routes, declared auth boundaries, entities, external service names, cron handlers, and generic risk findings.
+
+The tool is designed to flag risky edit boundaries before an AI coding agent changes a project. It is not a replacement for authentication tests, dependency scanning, SAST/DAST, or a production penetration test.
+
+## Limitations
+
+- Static route detection currently targets common Next.js App Router conventions.
+- Manifest validation is intentionally lightweight and does not enforce every JSON Schema keyword at runtime.
+- Risk scoring is generic; project-specific compliance, billing, affiliate, or incident rules should live in private plugins outside this package.
+- The bundled sample app is a fixture for scanner and MCP verification, not a deployable production template.
 
 ## Public/private boundary
 

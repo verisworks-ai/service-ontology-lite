@@ -12,11 +12,17 @@ from service_ontology_lite.schema import validate_manifest
 def test_nextjs_route_groups_dynamic_and_catch_all_segments(tmp_path: Path):
     app = tmp_path / "app"
     (app / "(marketing)" / "blog" / "[slug]").mkdir(parents=True)
-    (app / "(marketing)" / "blog" / "[slug]" / "page.tsx").write_text("export default function Page() {}", encoding="utf-8")
+    (app / "(marketing)" / "blog" / "[slug]" / "page.tsx").write_text(
+        "export default function Page() {}",
+        encoding="utf-8",
+    )
     (app / "docs" / "[...parts]").mkdir(parents=True)
     (app / "docs" / "[...parts]" / "page.tsx").write_text("export default function Page() {}", encoding="utf-8")
     (app / "shop" / "[[...filters]]").mkdir(parents=True)
-    (app / "shop" / "[[...filters]]" / "route.ts").write_text("export async function GET() { return Response.json({}) }", encoding="utf-8")
+    (app / "shop" / "[[...filters]]" / "route.ts").write_text(
+        "export async function GET() { return Response.json({}) }",
+        encoding="utf-8",
+    )
 
     graph = scan_project(tmp_path)
     paths = {route.path for route in graph.routes}
@@ -53,7 +59,10 @@ def test_validate_manifest_reports_invalid_auth_and_missing_handler():
 
 
 def test_cli_validate_returns_non_zero_for_invalid_manifest(tmp_path: Path, capsys):
-    (tmp_path / "service-ontology.json").write_text(json.dumps({"routes": [{"path": "bad", "auth": "nope"}]}), encoding="utf-8")
+    (tmp_path / "service-ontology.json").write_text(
+        json.dumps({"routes": [{"path": "bad", "auth": "nope"}]}),
+        encoding="utf-8",
+    )
 
     exit_code = cli_main(["validate", str(tmp_path)])
     out = capsys.readouterr().out

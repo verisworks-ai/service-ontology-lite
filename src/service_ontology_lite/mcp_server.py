@@ -50,7 +50,8 @@ def handle_request(request: dict[str, Any], root: Path) -> dict[str, Any]:
             payload = call_tool(tool_name, arguments, root)
         except ValueError as exc:
             return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32602, "message": str(exc)}}
-        return _result(request_id, {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, indent=2)}]})
+        content = [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, indent=2)}]
+        return _result(request_id, {"content": content})
     if method == "notifications/initialized":
         return _result(request_id, {})
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": f"Unknown method: {method}"}}
@@ -78,13 +79,45 @@ def call_tool(name: str, arguments: dict[str, Any], root: Path) -> dict[str, Any
 
 
 def _tools() -> list[dict[str, Any]]:
+    root_schema = {"type": "object", "properties": {"root": {"type": "string"}}}
+    risk_schema = {
+        "type": "object",
+        "properties": {
+            "root": {"type": "string"},
+            "changed_files": {"type": "array", "items": {"type": "string"}},
+        },
+    }
     return [
-        {"name": "get_service_graph", "description": "Return routes, entities, external services, jobs, and metadata.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
-        {"name": "list_routes", "description": "List service routes with auth boundaries and handlers.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
-        {"name": "list_external_dependencies", "description": "List detected external dependencies and env hints.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
-        {"name": "audit_change_risk", "description": "Estimate blast radius for changed files.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}, "changed_files": {"type": "array", "items": {"type": "string"}}}}},
-        {"name": "audit_service", "description": "Run generic service ontology audit rules.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
-        {"name": "validate_manifest", "description": "Validate service-ontology.json/yaml manifest structure before scan.", "inputSchema": {"type": "object", "properties": {"root": {"type": "string"}}}},
+        {
+            "name": "get_service_graph",
+            "description": "Return routes, entities, external services, jobs, and metadata.",
+            "inputSchema": root_schema,
+        },
+        {
+            "name": "list_routes",
+            "description": "List service routes with auth boundaries and handlers.",
+            "inputSchema": root_schema,
+        },
+        {
+            "name": "list_external_dependencies",
+            "description": "List detected external dependencies and env hints.",
+            "inputSchema": root_schema,
+        },
+        {
+            "name": "audit_change_risk",
+            "description": "Estimate blast radius for changed files.",
+            "inputSchema": risk_schema,
+        },
+        {
+            "name": "audit_service",
+            "description": "Run generic service ontology audit rules.",
+            "inputSchema": root_schema,
+        },
+        {
+            "name": "validate_manifest",
+            "description": "Validate service-ontology.json/yaml manifest structure before scan.",
+            "inputSchema": root_schema,
+        },
     ]
 
 
