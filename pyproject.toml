@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "service-ontology-lite"
+version = "0.1.0"
+description = "Lightweight service ontology and audit MCP for vibe-coded web apps."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "veris", email = "hello@veris.kr" }]
+keywords = ["ontology", "mcp", "audit", "nextjs", "vercel", "ai-coding"]
+dependencies = []
+
+[project.scripts]
+service-ontology = "service_ontology_lite.cli:main"
+service-ontology-mcp = "service_ontology_lite.mcp_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/service_ontology_lite"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
