@@ -1,0 +1,89 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from .audit import audit_change_risk, audit_graph
+from .models import score_findings
+from .scanner import _load_manifest, scan_project
+from .schema import validate_manifest
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="service-ontology")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    for name in ("scan", "graph", "audit"):
+        p = sub.add_parser(name)
+        p.add_argument("root", nargs="?", default=".")
+        p.add_argument("--json", action="store_true")
+
+    risk = sub.add_parser("risk")
+    risk.add_argument("root", nargs="?", default=".")
+    risk.add_argument("--changed", action="append", default=[])
+    risk.add_argument("--json", action="store_true")
+
+    validate = sub.add_parser("validate")
+    validate.add_argument("root", nargs="?", default=".")
+    validate.add_argument("--json", action="store_true")
+
+    args = parser.parse_args(argv)
+
+    if args.command == "validate":
+        manifest = _load_manifest(Path(args.root).resolve(), validate=False)
+        errors = validate_manifest(manifest) if manifest else ["service-ontology manifest not found"]
+        payload = {"manifest_valid": not errors, "errors": errors}
+        if getattr(args, "json", False):
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(_format_text(args.command, payload))
+        return 0 if not errors else 1
+
+    graph = scan_project(Path(args.root))
+
+    if args.command in {"scan", "graph"}:
+        payload = graph.as_dict()
+    elif args.command == "audit":
+        findings = audit_graph(graph)
+        payload = {
+            "score": score_findings(findings),
+            "finding_count": len(findings),
+            "findings": [f.as_dict() for f in findings],
+            "metrics": graph.metadata,
+        }
+    elif args.command == "risk":
+        payload = audit_change_risk(graph, args.changed)
+    else:
+        raise AssertionError(args.command)
+
+    if getattr(args, "json", False):
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        print(_format_text(args.command, payload))
+    return 0
+
+
+def _format_text(command: str, payload: dict) -> str:
+    if command in {"scan", "graph"}:
+        return "\n".join([
+            "service-ontology-lite graph",
+            f"routes: {len(payload.get('routes', []))}",
+            f"entities: {len(payload.get('entities', []))}",
+            f"external_services: {len(payload.get('external_services', []))}",
+            f"jobs: {len(payload.get('jobs', []))}",
+        ])
+    if command == "audit":
+        lines = [f"score: {payload['score']}", f"findings: {payload['finding_count']}"]
+        for item in payload["findings"]:
+            lines.append(f"[{item['severity']}] {item['title']}")
+        return "\n".join(lines)
+    if command == "validate":
+        lines = [f"manifest_valid: {str(payload['manifest_valid']).lower()}"]
+        lines.extend(payload.get("errors", []))
+        return "\n".join(lines)
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

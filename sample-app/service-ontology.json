@@ -1,0 +1,74 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "auth": "public",
+      "handler": "app/page.tsx",
+      "methods": ["GET"],
+      "entities": [],
+      "external_services": []
+    },
+    {
+      "path": "/dashboard",
+      "auth": "required",
+      "handler": "app/dashboard/page.tsx",
+      "methods": ["GET"],
+      "entities": ["User"],
+      "external_services": []
+    },
+    {
+      "path": "/api/public",
+      "auth": "public",
+      "handler": "app/api/public/route.ts",
+      "methods": ["GET"],
+      "entities": [],
+      "external_services": ["Supabase"]
+    },
+    {
+      "path": "/api/admin",
+      "auth": "admin",
+      "handler": "app/api/admin/route.ts",
+      "methods": ["POST"],
+      "entities": ["User"],
+      "external_services": ["Discord"]
+    },
+    {
+      "path": "/api/cron",
+      "auth": "cron",
+      "handler": "app/api/cron/route.ts",
+      "methods": ["GET"],
+      "entities": [],
+      "external_services": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "storage": "database:users",
+      "fields": ["id", "email"],
+      "exposed_at": ["/dashboard", "/api/admin"]
+    }
+  ],
+  "external_services": [
+    {
+      "name": "Discord",
+      "type": "notification",
+      "env": ["DISCORD_WEBHOOK_URL"],
+      "used_by": ["app/api/admin/route.ts"]
+    },
+    {
+      "name": "Supabase",
+      "type": "database",
+      "env": ["SUPABASE_URL"],
+      "used_by": ["app/api/public/route.ts"]
+    }
+  ],
+  "jobs": [
+    {
+      "name": "cron-healthcheck",
+      "schedule": "*/10 * * * *",
+      "handler": "app/api/cron/route.ts",
+      "auth": "cron"
+    }
+  ]
+}

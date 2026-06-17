@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veris.kr/schemas/service-ontology-lite.manifest.json",
+  "title": "service-ontology-lite manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "handler"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/"},
+          "auth": {"type": "string", "enum": ["public", "required", "admin", "cron", "unknown"]},
+          "handler": {"type": "string", "minLength": 1},
+          "methods": {"type": "array", "items": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]}},
+          "entities": {"type": "array", "items": {"type": "string"}},
+          "external_services": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "storage": {"type": "string"},
+          "fields": {"type": "array", "items": {"type": "string"}},
+          "exposed_at": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "external_services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "type": {"type": "string"},
+          "env": {"type": "array", "items": {"type": "string"}},
+          "used_by": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "handler"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "schedule": {"type": "string"},
+          "handler": {"type": "string", "minLength": 1},
+          "auth": {"type": "string", "enum": ["cron", "admin", "required"]}
+        }
+      }
+    }
+  }
+}
