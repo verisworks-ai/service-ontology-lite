@@ -42,7 +42,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not errors else 1
 
     if args.command == "agent-os":
-        payload = load_agent_os_registry(Path(args.root))
+        root = Path(args.root).resolve()
+        manifest = _load_manifest(root, validate=False)
+        errors = validate_manifest(manifest) if manifest else ["service-ontology manifest not found"]
+        if errors:
+            payload = {"manifest_valid": False, "errors": errors}
+            if getattr(args, "json", False):
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print(_format_text("validate", payload))
+            return 1
+        payload = load_agent_os_registry(root)
         if getattr(args, "json", False):
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:

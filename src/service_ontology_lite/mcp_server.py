@@ -66,6 +66,10 @@ def call_tool(name: str, arguments: dict[str, Any], root: Path) -> dict[str, Any
         return {"manifest_valid": not errors, "errors": errors}
     if name in {"get_agent_os_graph", "list_project_contexts"}:
         target = Path(arguments.get("root") or root)
+        manifest = _load_manifest(target, validate=False)
+        errors = validate_manifest(manifest) if manifest else ["service-ontology manifest not found"]
+        if errors:
+            return {"manifest_valid": False, "errors": errors}
         registry = load_agent_os_registry(target)
         if name == "list_project_contexts":
             return {"project_contexts": registry.get("project_contexts", {})}
