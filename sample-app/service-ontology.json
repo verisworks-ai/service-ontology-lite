@@ -76,8 +76,8 @@
       {"id": "service-ontology-lite", "name": "service-ontology-lite sample"}
     ],
     "agents": [
-      {"id": "codex-hermes", "role": "implementation-discord-operator"},
-      {"id": "gem-hermes", "role": "research-strategy"}
+      {"id": "implementation-agent", "role": "implementation"},
+      {"id": "research-agent", "role": "research"}
     ],
     "surfaces": [
       {"id": "local-sample-app", "type": "local_repo", "project_context_id": "service-ontology-lite"}
@@ -86,7 +86,7 @@
       {
         "id": "agent-os-registry-poc",
         "project_context_id": "service-ontology-lite",
-        "owner_agent": "codex-hermes",
+        "owner_agent": "implementation-agent",
         "surface_id": "local-sample-app",
         "skills": ["source-first-project-development", "test-driven-development"]
       }
@@ -96,10 +96,10 @@
       {"id": "test-driven-development"}
     ],
     "hooks": [
-      {"id": "on_task_complete", "triggers": ["memory_consolidation_loop"]}
+      {"id": "on_task_complete", "triggers": ["evidence_capture_loop"]}
     ],
     "loops": [
-      {"id": "memory_consolidation_loop", "pass_condition": "verified_output_recorded"}
+      {"id": "evidence_capture_loop", "pass_condition": "verified_output_recorded"}
     ],
     "plugins": [
       {"id": "service-ontology-lite"}
@@ -108,11 +108,11 @@
       {"id": "pytest-agent-os-registry", "type": "test_output", "project_context_id": "service-ontology-lite"}
     ],
     "memories": [
-      {"id": "project/service-ontology-lite", "namespace": "project", "project_context_id": "service-ontology-lite"}
+      {"id": "sample/service-ontology-lite", "namespace": "project", "project_context_id": "service-ontology-lite"}
     ],
     "relations": [
       {"source": "agent-os-registry-poc", "relation": "produces", "target": "pytest-agent-os-registry"},
-      {"source": "pytest-agent-os-registry", "relation": "updates", "target": "project/service-ontology-lite"}
+      {"source": "pytest-agent-os-registry", "relation": "updates", "target": "sample/service-ontology-lite"}
     ]
   }
 }

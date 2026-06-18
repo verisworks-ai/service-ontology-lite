@@ -191,8 +191,8 @@ agent_os:
     - id: service-ontology-lite
       name: service-ontology-lite sample
   agents:
-    - id: codex-hermes
-      role: implementation-discord-operator
+    - id: implementation-agent
+      role: implementation
   surfaces:
     - id: local-sample-app
       type: local_repo
@@ -200,7 +200,7 @@ agent_os:
   tasks:
     - id: agent-os-registry-poc
       project_context_id: service-ontology-lite
-      owner_agent: codex-hermes
+      owner_agent: implementation-agent
   artifacts:
     - id: pytest-agent-os-registry
       type: test_output

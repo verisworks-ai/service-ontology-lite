@@ -9,7 +9,7 @@ from service_ontology_lite.mcp_server import call_tool
 
 def test_agent_os_cli_rejects_invalid_manifest(tmp_path: Path, capsys):
     (tmp_path / "service-ontology.json").write_text(
-        json.dumps({"agent_os": {"tasks": [{"id": "task-1", "owner_agent": "codex-hermes"}]}}),
+        json.dumps({"agent_os": {"tasks": [{"id": "task-1", "owner_agent": "implementation-agent"}]}}),
         encoding="utf-8",
     )
 
@@ -41,7 +41,7 @@ def test_mcp_list_project_contexts_returns_context_summary(tmp_path: Path):
     payload = call_tool("list_project_contexts", {"root": str(tmp_path)}, tmp_path)
 
     assert payload["project_contexts"]["service-ontology-lite"]["counts"]["tasks"] == 1
-    assert payload["project_contexts"]["service-ontology-lite"]["agents"] == ["codex-hermes"]
+    assert payload["project_contexts"]["service-ontology-lite"]["agents"] == ["implementation-agent"]
 
 
 def test_agent_os_cli_filters_project_context_json(tmp_path: Path, capsys):
@@ -81,12 +81,12 @@ def _write_manifest_with_two_project_contexts(root: Path) -> None:
                         {
                             "id": "task-1",
                             "project_context_id": "service-ontology-lite",
-                            "owner_agent": "codex-hermes",
+                            "owner_agent": "implementation-agent",
                         },
                         {
                             "id": "task-2",
                             "project_context_id": "other-project",
-                            "owner_agent": "gem-hermes",
+                            "owner_agent": "research-agent",
                         },
                     ],
                 }
