@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 from . import __version__
@@ -14,12 +13,8 @@ from .schema import validate_manifest
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = argv if argv is not None else sys.argv[1:]
-    if argv == ["--version"]:
-        print(f"service-ontology {__version__}")
-        return 0
-
     parser = argparse.ArgumentParser(prog="service-ontology")
+    parser.add_argument("-V", "--version", action="version", version=f"service-ontology {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     for name in ("scan", "graph", "audit"):

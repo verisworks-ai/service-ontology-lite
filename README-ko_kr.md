@@ -67,7 +67,7 @@ AI 코딩 에이전트에게 작업을 넘기기 전에 실행한다. 결과는 
 ## CLI
 
 ```bash
-service-ontology --version
+service-ontology --version   # 또는: service-ontology -V
 service-ontology scan ./sample-app --json
 service-ontology audit ./sample-app --json
 service-ontology graph ./sample-app --json

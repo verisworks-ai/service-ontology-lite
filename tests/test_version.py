@@ -15,6 +15,10 @@ def test_package_version_matches_installed_metadata():
     assert "__version__" in sol.__all__
 
 
-def test_cli_version_prints_package_version(capsys: pytest.CaptureFixture[str]):
-    assert cli.main(["--version"]) == 0
+@pytest.mark.parametrize("flag", ["--version", "-V"])
+def test_cli_version_prints_package_version(flag: str, capsys: pytest.CaptureFixture[str]):
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main([flag])
+
+    assert exc_info.value.code == 0
     assert capsys.readouterr().out.strip() == f"service-ontology {sol.__version__}"

@@ -67,7 +67,7 @@ Use this before handing a task to an AI coding agent. The result tells the agent
 ## CLI
 
 ```bash
-service-ontology --version
+service-ontology --version   # or: service-ontology -V
 service-ontology scan ./sample-app --json
 service-ontology audit ./sample-app --json
 service-ontology graph ./sample-app --json
