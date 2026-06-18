@@ -147,7 +147,7 @@ audit score             100
 audit findings          0
 risk admin route        HIGH
 manifest_valid          true
-MCP tools exposed       6
+MCP tools exposed       8
 ```
 
 ## Next.js route support
