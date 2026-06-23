@@ -11,11 +11,12 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "veris", email = "hello@veris.kr" }]
 keywords = ["ontology", "mcp", "audit", "nextjs", "vercel", "ai-coding"]
-dependencies = []
+dependencies = ["fastmcp>=2.14.1", "fastapi>=0.100.0", "uvicorn>=0.24.0"]
 
 [project.scripts]
 service-ontology = "service_ontology_lite.cli:main"
 service-ontology-mcp = "service_ontology_lite.mcp_server:main"
+service-ontology-mcp-http = "service_ontology_lite.mcp_http_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/service_ontology_lite"]
