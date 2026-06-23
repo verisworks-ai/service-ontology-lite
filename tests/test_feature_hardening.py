@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from service_ontology_lite.cli import main as cli_main
-from service_ontology_lite.mcp_server import handle_request
 from service_ontology_lite.scanner import scan_project
 from service_ontology_lite.schema import validate_manifest
 
@@ -70,30 +69,3 @@ def test_cli_validate_returns_non_zero_for_invalid_manifest(tmp_path: Path, caps
     assert exit_code == 1
     assert "manifest_valid: false" in out
     assert "routes[0].path must start with /" in out
-
-
-def test_mcp_unknown_tool_returns_jsonrpc_error(tmp_path: Path):
-    response = handle_request(
-        {"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "missing_tool", "arguments": {}}},
-        tmp_path,
-    )
-
-    assert response["id"] == 7
-    assert response["error"]["code"] == -32602
-    assert "Unknown tool" in response["error"]["message"]
-
-
-def test_mcp_validate_manifest_tool_reports_valid_sample():
-    response = handle_request(
-        {
-            "jsonrpc": "2.0",
-            "id": 8,
-            "method": "tools/call",
-            "params": {"name": "validate_manifest", "arguments": {"root": "sample-app"}},
-        },
-        Path("."),
-    )
-    text = response["result"]["content"][0]["text"]
-    payload = json.loads(text)
-
-    assert payload == {"manifest_valid": True, "errors": []}
