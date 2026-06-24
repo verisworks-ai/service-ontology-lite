@@ -1,11 +1,22 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
 from service_ontology_lite.cli import main as cli_main
+from service_ontology_lite.mcp_server import create_app
 from service_ontology_lite.scanner import scan_project
 from service_ontology_lite.schema import validate_manifest
+
+REVIEWED_MCP_TOOLS = {
+    "get_service_graph",
+    "list_routes",
+    "list_external_dependencies",
+    "audit_change_risk",
+    "audit_service",
+    "validate_manifest",
+}
 
 
 def test_nextjs_route_groups_dynamic_and_catch_all_segments(tmp_path: Path):
@@ -69,3 +80,18 @@ def test_cli_validate_returns_non_zero_for_invalid_manifest(tmp_path: Path, caps
     assert exit_code == 1
     assert "manifest_valid: false" in out
     assert "routes[0].path must start with /" in out
+
+
+def test_mcp_reviewed_tools_include_service_name_and_annotations():
+    tools = asyncio.run(create_app().list_tools())
+    reviewed = {tool.name: tool for tool in tools if tool.name in REVIEWED_MCP_TOOLS}
+
+    assert set(reviewed) == REVIEWED_MCP_TOOLS
+    for tool in reviewed.values():
+        assert tool.description is not None
+        assert "서비스 안전점검 온톨로지 엔진" in tool.description
+        assert tool.annotations is not None
+        assert tool.annotations.readOnlyHint is True
+        assert tool.annotations.destructiveHint is False
+        assert tool.annotations.idempotentHint is True
+        assert tool.annotations.openWorldHint is False

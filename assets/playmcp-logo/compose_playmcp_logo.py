@@ -60,11 +60,15 @@ def edge_connected_light_alpha(im: Image.Image) -> Image.Image:
     visited = np.zeros((h, w), dtype=bool)
     q = deque()
     for x in range(w):
-        if bg_candidate[0, x]: q.append((0, x))
-        if bg_candidate[h - 1, x]: q.append((h - 1, x))
+        if bg_candidate[0, x]:
+            q.append((0, x))
+        if bg_candidate[h - 1, x]:
+            q.append((h - 1, x))
     for y in range(h):
-        if bg_candidate[y, 0]: q.append((y, 0))
-        if bg_candidate[y, w - 1]: q.append((y, w - 1))
+        if bg_candidate[y, 0]:
+            q.append((y, 0))
+        if bg_candidate[y, w - 1]:
+            q.append((y, w - 1))
 
     while q:
         y, x = q.popleft()
@@ -160,7 +164,13 @@ font_sub = load_font(17, bold=False)
 draw_text_center(draw, (300, 470), 'service-ontology-lite', font_title, (20, 87, 158, 255))
 draw_text_center(draw, (300, 516), 'MCP risk graph audit', font_sub, (100, 116, 139, 235))
 # small deterministic graph dots under subtitle
-for x, r, c in [(244,4,(59,130,246,210)), (272,3,(148,163,184,210)), (300,4,(14,165,233,210)), (328,3,(148,163,184,210)), (356,4,(59,130,246,210))]:
+for x, r, c in [
+    (244, 4, (59, 130, 246, 210)),
+    (272, 3, (148, 163, 184, 210)),
+    (300, 4, (14, 165, 233, 210)),
+    (328, 3, (148, 163, 184, 210)),
+    (356, 4, (59, 130, 246, 210)),
+]:
     draw.ellipse((x-r,552-r,x+r,552+r), fill=c)
 draw.line((248,552,352,552), fill=(148,163,184,140), width=2)
 final.save(FINAL)
@@ -173,7 +183,13 @@ arr = np.array(final)
 alpha = arr[:,:,3]
 opaque = alpha > 0
 blueish = int(((arr[:,:,2] > arr[:,:,0]) & opaque).sum())
-silver = int(((np.abs(arr[:,:,0].astype(int)-arr[:,:,1].astype(int))<18) & (np.abs(arr[:,:,1].astype(int)-arr[:,:,2].astype(int))<24) & (arr[:,:,0]>115) & opaque).sum())
+silver_mask = (
+    (np.abs(arr[:, :, 0].astype(int) - arr[:, :, 1].astype(int)) < 18)
+    & (np.abs(arr[:, :, 1].astype(int) - arr[:, :, 2].astype(int)) < 24)
+    & (arr[:, :, 0] > 115)
+    & opaque
+)
+silver = int(silver_mask.sum())
 report = {
     'source_imagegen': str(SRC),
     'raw_candidates': [str(p) for p in RAW_FILES],
@@ -189,7 +205,10 @@ report = {
     'blueish_opaque_pixels': blueish,
     'silver_opaque_pixels': silver,
     'sha256': hashlib.sha256(FINAL.read_bytes()).hexdigest(),
-    'notes': 'ImageGen source mark + deterministic 600x600 transparent logo composition with exact service-ontology-lite text.',
+    'notes': (
+        'ImageGen source mark + deterministic 600x600 transparent logo composition '
+        'with exact service-ontology-lite text.'
+    ),
 }
 REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
 
