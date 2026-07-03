@@ -1,14 +1,32 @@
+<p align="center">
+  <img src=".github/assets/service-ontology-lite-logo.svg" alt="service-ontology-lite" width="640">
+</p>
+
+<p align="center">
+  <a href="https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://www.python.org"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11+-blue.svg"></a>
+  <a href="https://modelcontextprotocol.io"><img alt="MCP stdio" src="https://img.shields.io/badge/MCP-stdio-green.svg"></a>
+  <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+</p>
+
+<p align="center">
+  <a href="README-ko_kr.md">한국어</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#what-you-get">What you get</a> ·
+  <a href="#security-boundary">Security boundary</a>
+</p>
+
+<p align="center">
+  <img src=".github/assets/service-ontology-lite-hero.svg" alt="service-ontology-lite repository overview" width="960">
+</p>
+
 # service-ontology-lite
 
-**AI agents should not edit a web app before they know its routes, auth boundaries, data entities, external services, cron jobs, and blast radius.**
+**AI agents should not edit a web app before they know routes, auth boundaries, data entities, external services, cron jobs, and blast radius.**
 
-`service-ontology-lite` turns a small Next.js-style web app into a machine-readable service map, then exposes that map through a CLI and MCP server.
+`service-ontology-lite` maps routes, auth boundaries, entities, external dependencies, scheduled jobs, and change-risk before an agent edits source.
 
-[![CI](https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/verisworks-ai/service-ontology-lite/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org)
-[![MCP stdio](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io)
-
-> Current status: private staging repo. The package is being hardened for a later public release. Public-safe core code lives here; project-specific scoring, production schema, tokens, and incident runbooks stay outside the package.
+> One command. Structured evidence. Safer agent and launch workflows.
 
 ---
 
@@ -366,7 +384,7 @@ The JSON Schema reference is in `docs/service-ontology.schema.json`.
 The same schema file is also included in the wheel as package data at
 `service_ontology_lite/service-ontology.schema.json` so installed tools can reference the released schema without cloning the repository.
 
-## Security model
+## Security boundary
 
 `service-ontology-lite` is a static inspection and guardrail tool. It does not execute application code, open network connections, read `.env` files, or collect secret values. The scanner reads project files from the target directory and emits structural metadata: routes, declared auth boundaries, entities, external service names, cron handlers, and generic risk findings.
 
