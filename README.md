@@ -311,7 +311,12 @@ service-ontology validate ./sample-app
 ## MCP server
 
 ```bash
+# stdio mode (default — for Claude Desktop / local agents)
 service-ontology-mcp ./sample-app
+
+# HTTP mode (binds to 127.0.0.1:8000 by default)
+service-ontology-mcp-http ./sample-app
+service-ontology-mcp-http ./sample-app --host 0.0.0.0 --port 9000  # behind reverse proxy only
 ```
 
 Supported MCP tools:
