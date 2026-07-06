@@ -33,3 +33,35 @@ jobs:
 
       - name: Build package
         run: python -m build --sdist --wheel
+
+      - name: Credential scan
+        run: |
+          if grep -rn --include="*.py" --include="*.json" \
+            -E "(ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{35})" \
+            src/ tests/ 2>/dev/null; then
+            echo "::error::Credential pattern found in source"
+            exit 1
+          fi
+
+      - name: Personal info scan
+        run: |
+          if grep -rn --include="*.py" --include="*.json" --include="*.md" \
+            -E "/Users/[a-zA-Z]+" \
+            src/ tests/ README.md 2>/dev/null; then
+            echo "::error::Local user path found in tracked files"
+            exit 1
+          fi
+
+      - name: Default host safety check
+        run: |
+          python -c "
+          import ast, sys, pathlib
+          server_file = pathlib.Path('src/service_ontology_lite/mcp_http_server.py')
+          if not server_file.exists():
+              sys.exit(0)
+          src = server_file.read_text()
+          if '\"0.0.0.0\"' in src and 'default=\"0.0.0.0\"' in src:
+              print('::error::mcp_http_server default host is 0.0.0.0 — should be 127.0.0.1')
+              sys.exit(1)
+          print('host default: OK')
+          "
