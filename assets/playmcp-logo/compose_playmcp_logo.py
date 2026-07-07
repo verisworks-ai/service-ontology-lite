@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-ROOT = Path('/Users/kooyounglee/Documents/service-ontology-lite')
+ROOT = Path(__file__).resolve().parent.parent.parent
 RAW_DIR = ROOT / 'assets/playmcp-logo/raw'
 OUT_DIR = ROOT / 'assets/playmcp-logo'
 REPORT_DIR = ROOT / 'reports/playmcp-logo'
